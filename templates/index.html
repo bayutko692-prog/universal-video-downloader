@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Video Downloader | promode × @dvc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0f1d',
+                        cardbg: '#111827',
+                        accent: '#06b6d4',
+                        accentglow: '#22d3ee'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-darkbg text-gray-100 min-h-screen flex flex-col items-center justify-between font-sans selection:bg-accent selection:text-black">
+
+    <!-- Header -->
+    <header class="w-full py-6 px-8 border-b border-gray-800 flex justify-between items-center bg-cardbg/50 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <div class="w-3 h-3 bg-accent rounded-full animate-ping"></div>
+            <h1 class="text-xl font-black tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                PROMODE // VIDEO DOWNLOADER
+            </h1>
+        </div>
+        <div class="text-xs text-gray-400 tracking-widest uppercase">
+            OWNER: <span class="text-accent font-bold">@dvc</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="w-full max-w-4xl mx-auto px-4 py-12 flex-grow">
+        <div class="bg-cardbg border border-gray-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <h2 class="text-3xl font-extrabold mb-2 text-white">Universal Web Video Ripper</h2>
+            <p class="text-gray-400 mb-8 text-sm">Target any website with video content. Fast extraction, HLS streams, embeds, and direct media downloading.</p>
+
+            <!-- Input Form -->
+            <div class="space-y-4">
+                <div class="relative">
+                    <input type="url" id="targetUrl" placeholder="Paste website URL here (e.g., https://example.com/video-page)..." 
+                        class="w-full px-5 py-4 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all text-sm">
+                </div>
+                <button onclick="startDownload()" id="downloadBtn"
+                    class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-cyan-500/20 active:scale-[0.99]">
+                    Initialize Download
+                </button>
+            </div>
+
+            <!-- Status Box -->
+            <div id="statusBox" class="mt-8 hidden p-5 bg-gray-900/80 border border-gray-800 rounded-xl">
+                <div class="flex items-center space-x-3 mb-2">
+                    <div id="statusSpinner" class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                    <span id="statusTitle" class="text-sm font-bold text-cyan-400 uppercase tracking-wider">Status: Working</span>
+                </div>
+                <p id="statusMessage" class="text-xs text-gray-300 font-mono">Initializing process...</p>
+            </div>
+        </div>
+
+        <!-- Downloaded Files Gallery -->
+        <div class="mt-12">
+            <h3 class="text-xl font-bold mb-4 text-white flex items-center justify-between">
+                <span>Downloaded Videos</span>
+                <button onclick="loadFiles()" class="text-xs text-accent hover:underline">Refresh List</button>
+            </h3>
+            <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% if files %}
+                    {% for file in files %}
+                    <div class="bg-cardbg border border-gray-800 p-4 rounded-xl flex items-center justify-between hover:border-gray-700 transition-all">
+                        <span class="text-sm font-medium text-gray-200 truncate max-w-[220px]">{{ file }}</span>
+                        <a href="/downloads/{{ file }}" class="px-4 py-2 bg-gray-800 hover:bg-accent hover:text-black text-accent text-xs font-bold rounded-lg transition-all">
+                            Download
+                        </a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-span-2 text-center py-8 text-gray-500 text-sm">No videos downloaded yet.</div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-6 px-8 border-t border-gray-800 text-center text-xs text-gray-500 bg-cardbg/30">
+        promode v5.4.0 — ABSOLUTE ULTIMATE // Owner: @dvc
+    </footer>
+
+    <script>
+        let pollInterval = null;
+
+        function startDownload() {
+            const url = document.getElementById('targetUrl').value.trim();
+            if (!url) {
+                alert('Please enter a valid URL boss @dvc');
+                return;
+            }
+
+            const btn = document.getElementById('downloadBtn');
+            const statusBox = document.getElementById('statusBox');
+            const statusMsg = document.getElementById('statusMessage');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            statusBox.classList.remove('hidden');
+            statusMsg.textContent = 'Sending target URL to extraction engine...';
+
+            fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    statusBox.classList.add('hidden');
+                    return;
+                }
+                pollStatus();
+            })
+            .catch(err => {
+                console.error(err);
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            });
+        }
+
+        function pollStatus() {
+            if (pollInterval) clearInterval(pollInterval);
+
+            pollInterval = setInterval(() => {
+                fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    const statusMsg = document.getElementById('statusMessage');
+                    const statusTitle = document.getElementById('statusTitle');
+                    const statusSpinner = document.getElementById('statusSpinner');
+                    const btn = document.getElementById('downloadBtn');
+
+                    statusMsg.textContent = data.message;
+
+                    if (data.status === 'completed') {
+                        clearInterval(pollInterval);
+                        statusTitle.textContent = 'Status: Completed';
+                        statusSpinner.classList.remove('animate-spin', 'border-accent', 'border-t-transparent');
+                        statusSpinner.classList.add('bg-green-500', 'rounded-full');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50');
+                        loadFiles();
+                    } else if (data.status === 'error') {
+                        clearInterval(pollInterval);
+                        statusTitle.textContent = 'Status: Failed';
+                        statusSpinner.classList.remove('animate-spin', 'border-accent', 'border-t-transparent');
+                        statusSpinner.classList.add('bg-red-500', 'rounded-full');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50');
+                    }
+                });
+            }, 2000);
+        }
+
+        function loadFiles() {
+            fetch('/api/files')
+            .then(res => res.json())
+            .then(files => {
+                const list = document.getElementById('fileList');
+                if (files.length === 0) {
+                    list.innerHTML = '<div class="col-span-2 text-center py-8 text-gray-500 text-sm">No videos downloaded yet.</div>';
+                    return;
+                }
+                let html = '';
+                files.forEach(f => {
+                    html += `
+                    <div class="bg-cardbg border border-gray-800 p-4 rounded-xl flex items-center justify-between hover:border-gray-700 transition-all">
+                        <span class="text-sm font-medium text-gray-200 truncate max-w-[220px]">${f}</span>
+                        <a href="/downloads/${f}" class="px-4 py-2 bg-gray-800 hover:bg-accent hover:text-black text-accent text-xs font-bold rounded-lg transition-all">
+                            Download
+                        </a>
+                    </div>`;
+                });
+                list.innerHTML = html;
+            });
+        }
+    </script>
+</body>
+</html>

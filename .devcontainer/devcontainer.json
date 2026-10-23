@@ -1,0 +1,11 @@
+{
+  "name": "Universal Video Downloader",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python"]
+    }
+  },
+  "forwardPorts": [5000],
+  "postCreateCommand": "pip install flask requests beautifulsoup4 rich yt-dlp && python3 app.py"
+}
