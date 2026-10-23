@@ -7,5 +7,12 @@
     }
   },
   "forwardPorts": [5000],
-  "postCreateCommand": "pip install flask requests beautifulsoup4 rich yt-dlp && python3 app.py"
+  "portsAttributes": {
+    "5000": {
+      "label": "Video Downloader Web UI",
+      "onAutoForward": "openBrowser",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "./start.sh"
 }
